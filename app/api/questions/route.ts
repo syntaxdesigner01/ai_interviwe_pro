@@ -52,8 +52,22 @@ export async function POST(request: NextRequest) {
 
   const technical = isTechnicalRole(jobTitle)
   const userPrompt = technical
-    ? `Generate exactly 3 interview questions for a ${jobTitle} position. Include a genuine variety: at least one behavioral or situational question AND at least one technical or coding/problem-solving question. The third can be either type — keep it surprising. Each question must have a short topic label (e.g. "Problem Solving", "System Design", "Behavioral", "Coding Challenge", "Debugging", "Communication"). Return ONLY valid JSON: {"questions":[{"topic":"...","question":"..."},{"topic":"...","question":"..."},{"topic":"...","question":"..."}]}. No markdown, no code blocks, no text outside the JSON.`
-    : `Generate exactly 3 interview questions for a ${jobTitle} position. Mix behavioral and situational questions. Each question must have a short topic label (e.g. "Behavioral", "Situational", "Communication", "Leadership", "Problem Solving"). Return ONLY valid JSON: {"questions":[{"topic":"...","question":"..."},{"topic":"...","question":"..."},{"topic":"...","question":"..."}]}. No markdown, no code blocks, no text outside the JSON.`
+    ? `Generate exactly 9 interview questions for a ${jobTitle} position. Include a genuine variety across all 9: a mix of behavioral, situational, technical knowledge, and coding/problem-solving questions. Distribute coding/technical questions at varied positions throughout the list — do not cluster them or always place them at the same index. Each question must have a short topic label (e.g. "Problem Solving", "System Design", "Behavioral", "Coding Challenge", "Debugging", "Communication").
+
+For coding/problem-solving questions ONLY, sometimes add a "code" field and a "language" field — but ONLY when the question requires external context the candidate cannot infer from the question text alone. If the question is self-contained (e.g. "implement a stack", "write a debounce function", "reverse a linked list"), do NOT add a code field at all.
+
+Only add a "code" field when the question depends on specific input data, a database schema, or an existing codebase the candidate must work with. In that case the "code" field must contain ONLY the context — never any part of the answer. Rules:
+- SQL questions: show ONLY the relevant table schemas as comments (column names and types) — no SELECT/INSERT/UPDATE statements
+- Input/output questions: show ONLY the sample input as a variable or comment — no transformation logic
+- "Fix this bug" questions: show ONLY the broken code snippet — no fixed version
+
+NEVER add a code field for "implement X from scratch" questions — those are self-contained and showing any skeleton gives away the structure.
+
+BAD (gives away the answer): class Stack with push/pop/pop methods listed
+GOOD (schema context only): "-- Table: sales\\n-- Columns: product_id INT, sales_amount DECIMAL, created_at DATE"
+
+Return ONLY valid JSON: {"questions":[{"topic":"...","question":"..."},{"topic":"...","question":"...","code":"...","language":"sql"},{"topic":"...","question":"..."}]}. No markdown, no code blocks, no text outside the JSON.`
+    : `Generate exactly 9 interview questions for a ${jobTitle} position. Mix behavioral and situational questions with variety. Each question must have a short topic label (e.g. "Behavioral", "Situational", "Communication", "Leadership", "Problem Solving"). Return ONLY valid JSON: {"questions":[{"topic":"...","question":"..."},{"topic":"...","question":"..."},{"topic":"...","question":"..."}]}. No markdown, no code blocks, no text outside the JSON.`
 
   try {
     const { data } = await axios.post(
@@ -68,14 +82,14 @@ export async function POST(request: NextRequest) {
           },
           { role: 'user', content: userPrompt },
         ],
-        max_tokens: 600,
+        max_tokens: 2000,
         temperature: 0.8,
       },
       { headers: { Authorization: `Bearer ${apiKey}` } }
     )
 
     const content: string = data.choices[0].message.content.trim()
-    let parsed: { questions: { topic: string; question: string }[] }
+    let parsed: { questions: { topic: string; question: string; code?: string; language?: string }[] }
 
     try {
       parsed = JSON.parse(content)
@@ -89,8 +103,14 @@ export async function POST(request: NextRequest) {
 
     if (
       !Array.isArray(parsed.questions) ||
-      parsed.questions.length < 3 ||
-      parsed.questions.some((q) => typeof q.topic !== 'string' || typeof q.question !== 'string')
+      parsed.questions.length < 6 ||
+      parsed.questions.some(
+        (q) =>
+          typeof q.topic !== 'string' ||
+          typeof q.question !== 'string' ||
+          (q.code !== undefined && typeof q.code !== 'string') ||
+          (q.language !== undefined && typeof q.language !== 'string')
+      )
     ) {
       return Response.json(
         { error: 'Received unexpected response. Please try again.' },
@@ -98,7 +118,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    return Response.json({ questions: parsed.questions.slice(0, 3) })
+    return Response.json({ questions: parsed.questions.slice(0, 9) })
   } catch (err: any) {
     console.error('Groq API error:', err?.response?.data ?? err.message)
     return Response.json(

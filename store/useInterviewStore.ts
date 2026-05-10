@@ -3,21 +3,35 @@ import { create } from 'zustand'
 import axios from 'axios'
 import { JOB_TITLES } from '@/lib/jobTitles'
 
-type Question = { topic: string; question: string }
+type Question = { topic: string; question: string; code?: string; language?: string }
 
 type InterviewStore = {
   jobTitle: string
+  allQuestions: Question[]
   questions: Question[]
+  questionPage: number
   loading: boolean
   error: string | null
   setJobTitle: (title: string) => void
   fetchQuestions: () => Promise<void>
+  regenerate: () => Promise<void>
   reset: () => void
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
 }
 
 export const useInterviewStore = create<InterviewStore>((set, get) => ({
   jobTitle: '',
+  allQuestions: [],
   questions: [],
+  questionPage: 0,
   loading: false,
   error: null,
   setJobTitle: (title) => set({ jobTitle: title }),
@@ -46,15 +60,36 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
       set({ error: 'Please select a valid job title from the list.' })
       return
     }
-    set({ loading: true, error: null, questions: [] })
+    set({ loading: true, error: null, questions: [], allQuestions: [], questionPage: 0 })
     try {
       const { data } = await axios.post('/api/questions', { jobTitle })
-      set({ questions: data.questions, loading: false })
+      const shuffled = shuffle<Question>(data.questions)
+      set({
+        allQuestions: shuffled,
+        questions: shuffled.slice(0, 3),
+        questionPage: 0,
+        loading: false,
+      })
     } catch (err: any) {
       const msg =
         err?.response?.data?.error ?? 'Failed to generate questions. Please try again.'
       set({ error: msg, loading: false })
     }
   },
-  reset: () => set({ jobTitle: '', questions: [], loading: false, error: null }),
+  regenerate: async () => {
+    const { allQuestions, questionPage } = get()
+    const totalPages = Math.floor(allQuestions.length / 3)
+    const nextPage = questionPage + 1
+
+    if (nextPage < totalPages) {
+      set({
+        questionPage: nextPage,
+        questions: allQuestions.slice(nextPage * 3, nextPage * 3 + 3),
+      })
+    } else {
+      await get().fetchQuestions()
+    }
+  },
+  reset: () =>
+    set({ jobTitle: '', allQuestions: [], questions: [], questionPage: 0, loading: false, error: null }),
 }))
