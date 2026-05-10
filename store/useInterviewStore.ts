@@ -12,6 +12,7 @@ type InterviewStore = {
   questionPage: number
   loading: boolean
   error: string | null
+  totalTokens: number
   setJobTitle: (title: string) => void
   fetchQuestions: () => Promise<void>
   regenerate: () => Promise<void>
@@ -34,6 +35,7 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
   questionPage: 0,
   loading: false,
   error: null,
+  totalTokens: 0,
   setJobTitle: (title) => set({ jobTitle: title }),
   fetchQuestions: async () => {
     const { jobTitle } = get()
@@ -69,6 +71,7 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
         questions: shuffled.slice(0, 3),
         questionPage: 0,
         loading: false,
+        totalTokens: get().totalTokens + (data.usage?.total_tokens ?? 0),
       })
     } catch (err: any) {
       const msg =
@@ -91,5 +94,5 @@ export const useInterviewStore = create<InterviewStore>((set, get) => ({
     }
   },
   reset: () =>
-    set({ jobTitle: '', allQuestions: [], questions: [], questionPage: 0, loading: false, error: null }),
+    set({ jobTitle: '', allQuestions: [], questions: [], questionPage: 0, loading: false, error: null, totalTokens: 0 }),
 }))

@@ -88,6 +88,9 @@ Return ONLY valid JSON: {"questions":[{"topic":"...","question":"..."},{"topic":
       { headers: { Authorization: `Bearer ${apiKey}` } }
     )
 
+    const usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number } | null =
+      data.usage ?? null
+
     const content: string = data.choices[0].message.content.trim()
     let parsed: { questions: { topic: string; question: string; code?: string; language?: string }[] }
 
@@ -118,7 +121,7 @@ Return ONLY valid JSON: {"questions":[{"topic":"...","question":"..."},{"topic":
       )
     }
 
-    return Response.json({ questions: parsed.questions.slice(0, 9) })
+    return Response.json({ questions: parsed.questions.slice(0, 9), usage })
   } catch (err: any) {
     console.error('Groq API error:', err?.response?.data ?? err.message)
     return Response.json(

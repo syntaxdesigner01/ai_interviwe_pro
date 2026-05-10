@@ -44,7 +44,7 @@ export default function InterviewForm() {
     const tier2 = JOB_TITLES.filter(
       (t) => !t.toLowerCase().startsWith(q) && t.toLowerCase().includes(q)
     ).sort()
-    return [...tier1, ...tier2].slice(0, 6)
+    return [...new Set([...tier1, ...tier2])].slice(0, 6)
   }, [jobTitle])
 
   useEffect(() => {
@@ -96,8 +96,8 @@ export default function InterviewForm() {
   return (
     <div className="mt-8">
       <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <label htmlFor="jobTitle" className="text-sm font-medium text-gray-700">
-          Job Title
+        <label htmlFor="jobTitle" className="text-sm font-medium text-gray-600">
+          Enter a job title and get 3 tailored interview questions powered by AI.
         </label>
 
         <div ref={wrapperRef} className="relative">
@@ -112,7 +112,7 @@ export default function InterviewForm() {
             maxLength={100}
             disabled={loading}
             autoComplete="off"
-            className="w-full border text-black border-gray-300 rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-400"
+            className="w-full border text-black bg-white border-black/50 rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-400"
           />
           <AnimatePresence>
             {isValidTitle && (

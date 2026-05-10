@@ -35,6 +35,25 @@ function topicBadgeClass(topic: string | undefined): string {
   return 'bg-gray-100 text-gray-600'
 }
 
+function SkeletonCard({ delay }: { delay: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay, ease: [0.25, 0.46, 0.45, 0.94] }}
+      className="bg-white/70 backdrop-blur-md border border-white/60 rounded-xl px-5 py-4 shadow-sm flex gap-4"
+    >
+      <div className="shrink-0 w-7 h-7 rounded-full bg-indigo-100/80 animate-pulse" />
+      <div className="flex-1 min-w-0 space-y-3 pt-0.5">
+        <div className="h-4 w-20 rounded-full bg-gray-200/90 animate-pulse" />
+        <div className="h-3.5 w-full rounded bg-gray-200/90 animate-pulse" />
+        <div className="h-3.5 w-5/6 rounded bg-gray-200/90 animate-pulse" />
+        <div className="h-3.5 w-4/6 rounded bg-gray-200/80 animate-pulse" />
+      </div>
+    </motion.div>
+  )
+}
+
 function filenameFromLanguage(lang: string | undefined): string {
   const map: Record<string, string> = {
     javascript: 'solution.js',
@@ -127,6 +146,43 @@ function CodeBlock({
   )
 }
 
+function EmptyState() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+      className="mt-16 flex flex-col items-center gap-3 text-center select-none"
+    >
+      <motion.div
+        animate={{ y: [0, -7, 0] }}
+        transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <svg width="110" height="118" viewBox="0 0 110 118" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M82 76 Q100 64 95 50 Q91 40 82 46" stroke="#d97706" strokeWidth="8" fill="none" strokeLinecap="round"/>
+          <ellipse cx="55" cy="84" rx="28" ry="21" fill="#fbbf24"/>
+          <ellipse cx="37" cy="41" rx="10" ry="15" fill="#d97706" transform="rotate(-12 37 41)"/>
+          <ellipse cx="73" cy="41" rx="10" ry="15" fill="#d97706" transform="rotate(12 73 41)"/>
+          <circle cx="55" cy="50" r="21" fill="#fbbf24"/>
+          <circle cx="48" cy="47" r="3" fill="#1f2937"/>
+          <circle cx="62" cy="47" r="3" fill="#1f2937"/>
+          <circle cx="49.2" cy="45.8" r="1.1" fill="white"/>
+          <circle cx="63.2" cy="45.8" r="1.1" fill="white"/>
+          <ellipse cx="55" cy="55" rx="5" ry="3.5" fill="#92400e"/>
+          <path d="M50 59.5 Q55 64.5 60 59.5" stroke="#92400e" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+          <ellipse cx="40" cy="102" rx="10" ry="6.5" fill="#fbbf24"/>
+          <ellipse cx="70" cy="102" rx="10" ry="6.5" fill="#fbbf24"/>
+          <rect x="18" y="107" width="28" height="5" rx="2.5" fill="#d97706"/>
+          <circle cx="18" cy="109.5" r="5" fill="#d97706"/>
+          <circle cx="46" cy="109.5" r="5" fill="#d97706"/>
+        </svg>
+      </motion.div>
+      <p className="text-sm font-medium text-gray-600">Waiting to fetch your questions...</p>
+      <p className="text-xs text-gray-400">Enter a job title above to get started</p>
+    </motion.div>
+  )
+}
+
 export default function QuestionsList() {
   const { questions, loading, jobTitle, questionPage } = useInterviewStore()
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
@@ -146,11 +202,16 @@ export default function QuestionsList() {
 
   if (loading) {
     return (
-      <div className="mt-8 text-center text-sm text-gray-500">
-        <span className="inline-block w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2 align-middle" />
-        Generating questions for <span className="font-medium text-gray-700">{jobTitle}</span>...
+      <div className="mt-8 flex flex-col gap-3">
+        {[0, 1, 2].map((i) => (
+          <SkeletonCard key={i} delay={i * 0.1} />
+        ))}
       </div>
     )
+  }
+
+  if (questions.length === 0) {
+    return <EmptyState />
   }
 
   return (
@@ -188,9 +249,9 @@ export default function QuestionsList() {
                 whileInView="visible"
                 initial="hidden"
                 viewport={{ once: true, margin: '-40px' }}
-                whileHover={{ y: -3, boxShadow: '0 8px 24px rgba(0,0,0,0.10)' }}
+                whileHover={{ y: -3, boxShadow: '0 8px 28px rgba(99,102,241,0.18)' }}
                 transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                className="group bg-white border border-gray-200 rounded-xl px-5 py-4 shadow-sm flex gap-4 cursor-default"
+                className="group bg-white/70 backdrop-blur-md border border-white/60 rounded-xl px-5 py-4 shadow-sm flex gap-4 cursor-default"
               >
                 <span className="shrink-0 w-7 h-7 rounded-full bg-blue-100 text-blue-700 text-sm font-bold flex items-center justify-center">
                   {index + 1}
